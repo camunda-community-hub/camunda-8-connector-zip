@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1o0l3xz" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.41.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.0.0">
+  <bpmn:collaboration id="Collaboration_1gdovn7">
+    <bpmn:participant id="Participant_1ofzr54" processRef="UnZipAndPDF" />
+    <bpmn:participant id="Participant_18wgsd1" name="Web / Folder" />
+    <bpmn:participant id="Participant_1a2gw46" name="Camunda Doc" />
+    <bpmn:participant id="Participant_0pb1b74" name="Temporary folder" />
+    <bpmn:messageFlow id="Flow_1ehj5z1" sourceRef="Participant_18wgsd1" targetRef="Activity_create_test_california" />
+    <bpmn:messageFlow id="Flow_0s2s2hr" sourceRef="Activity_create_test_california" targetRef="Participant_1a2gw46" />
+    <bpmn:messageFlow id="Flow_19j3qz9" sourceRef="Participant_1a2gw46" targetRef="Activity_create_test_ohio" />
+    <bpmn:messageFlow id="Flow_0u9g6qs" sourceRef="Activity_upload_document_v1" targetRef="Participant_0pb1b74" />
+    <bpmn:messageFlow id="Flow_0mw9pt4" sourceRef="Participant_1a2gw46" targetRef="Activity_upload_document_v1" />
+  </bpmn:collaboration>
+  <bpmn:process id="UnZipAndPDF" name="UnZipAndPDF" isExecutable="true">
+    <bpmn:extensionElements />
+    <bpmn:laneSet id="LaneSet_0o0u39x">
+      <bpmn:lane id="Lane_16buafi" name="Folder">
+        <bpmn:flowNodeRef>StartEvent_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_create_test_california</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_create_test_ohio</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EventSubProcess</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_0ro7tvk</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_0kj4kb5</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_1ji6b7a</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_0keppf4</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_17gz6fm</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_0l7yrb4</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_Review</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Event_1m1jeje</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_upload_document_v1</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:output source="=&#34;Special Strange - T063 - [Dunkelzahn].zip&#34;" target="zipSourceFile2" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:outgoing>Flow_1mevemb</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Activity_create_test_california" name="Unzip">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="c-zip-function" />
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultVariable" value="result" />
+          <zeebe:header key="errorExpression" value="if is defined(error) then bpmnError(error.code, error.message) else null" />
+        </zeebe:taskHeaders>
+        <zeebe:ioMapping>
+          <zeebe:input source="=&#34;unzip&#34;" target="zipFunction" />
+          <zeebe:input source="={ &#34;storageDefinition&#34;: &#34;FOLDER:c:/temp/unzip/source&#34;, &#10;&#34;content&#34;:zipSourceFile}" target="sourceFile" />
+          <zeebe:input source="={ &#34;type&#34;: &#34;FOLDER&#34;,&#10;  &#34;complement&#34;: &#34;c:/temp/unzip/travail&#34;}" target="jsonStorageDefinition2" />
+          <zeebe:input source="=&#34;(?i)*.jpg&#34;" target="filterFile" />
+          <zeebe:input source="=false" target="keepFolderStucture" />
+          <zeebe:input source="=&#34;NUMBERASCII&#34;" target="sortZipEntries" />
+          <zeebe:input source="={ &#34;type&#34;: &#34;CAMUNDA8&#34;}" target="jsonStorageDefinition" />
+          <zeebe:output source="= result.listDocumentsId" target="listDocumentsJpeg" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1mevemb</bpmn:incoming>
+      <bpmn:outgoing>Flow_18fjwbd</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_1mevemb" sourceRef="StartEvent_1" targetRef="Activity_create_test_california" />
+    <bpmn:sequenceFlow id="Flow_18fjwbd" sourceRef="Activity_create_test_california" targetRef="Activity_1ji6b7a" />
+    <bpmn:userTask id="Activity_create_test_ohio" name="View">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:input source="create-folder" target="cmisFunction" />
+          <zeebe:input source="={&#34;url&#34;:&#34;http://localhost:8099/cmis/browser&#34;,&#34;userName&#34;:&#34;test&#34;,&#34;password&#34;:&#34;test&#34;}" target="cmisConnection" />
+          <zeebe:input source="/test" target="folderPath" />
+          <zeebe:input source="false" target="cmisType_optional" />
+          <zeebe:input source="false" target="recursiveName" />
+          <zeebe:input source="ohio" target="folderName" />
+          <zeebe:output source="= result.folderId" target="folderIdOhio" />
+          <zeebe:output source="= result.listFoldersCreated" target="listFoldersOhio" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultVariable" value="result" />
+          <zeebe:header key="errorExpression" value="if is defined(error) then bpmnError(error.code, error.message) else null" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1gp9upn</bpmn:incoming>
+      <bpmn:outgoing>Flow_1kzm8t0</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:subProcess id="EventSubProcess" name="Error" triggeredByEvent="true">
+      <bpmn:startEvent id="Event_044hfb5" name="Invalid parent, No CMIS connection">
+        <bpmn:outgoing>Flow_0imssjx</bpmn:outgoing>
+        <bpmn:errorEventDefinition id="ErrorEventDefinition_05s1mga" />
+      </bpmn:startEvent>
+      <bpmn:sequenceFlow id="Flow_0imssjx" sourceRef="Event_044hfb5" targetRef="Activity_ErrorInCmis" />
+      <bpmn:endEvent id="Event_1p2jsgx">
+        <bpmn:incoming>Flow_0elcqgx</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_0elcqgx" sourceRef="Activity_ErrorInCmis" targetRef="Event_1p2jsgx" />
+      <bpmn:userTask id="Activity_ErrorInCmis" name="Error in Zip">
+        <bpmn:incoming>Flow_0imssjx</bpmn:incoming>
+        <bpmn:outgoing>Flow_0elcqgx</bpmn:outgoing>
+      </bpmn:userTask>
+      <bpmn:boundaryEvent id="Event_105ru9d" name="5 mn" attachedToRef="Activity_ErrorInCmis">
+        <bpmn:outgoing>Flow_14x4h70</bpmn:outgoing>
+        <bpmn:timerEventDefinition id="TimerEventDefinition_1c7w831">
+          <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT5M</bpmn:timeDuration>
+        </bpmn:timerEventDefinition>
+      </bpmn:boundaryEvent>
+      <bpmn:endEvent id="Event_017io6d">
+        <bpmn:incoming>Flow_14x4h70</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_14x4h70" sourceRef="Event_105ru9d" targetRef="Event_017io6d" />
+    </bpmn:subProcess>
+    <bpmn:subProcess id="Activity_0ro7tvk" triggeredByEvent="true">
+      <bpmn:startEvent id="Event_1lfb4in" name="2 h">
+        <bpmn:outgoing>Flow_1hi9b5y</bpmn:outgoing>
+        <bpmn:timerEventDefinition id="TimerEventDefinition_1ok2vxr">
+          <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT2H</bpmn:timeDuration>
+        </bpmn:timerEventDefinition>
+      </bpmn:startEvent>
+      <bpmn:endEvent id="Event_15sp3vq">
+        <bpmn:incoming>Flow_1hi9b5y</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_1hi9b5y" sourceRef="Event_1lfb4in" targetRef="Event_15sp3vq" />
+    </bpmn:subProcess>
+    <bpmn:boundaryEvent id="Event_0kj4kb5" attachedToRef="Activity_create_test_ohio">
+      <bpmn:outgoing>Flow_1mbax0b</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_04i771i">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT2M</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="Flow_1c5x9o0" sourceRef="Activity_1ji6b7a" targetRef="Gateway_0keppf4" />
+    <bpmn:serviceTask id="Activity_1ji6b7a" name="JpegToPdf">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="c-pdf-function" />
+        <zeebe:ioMapping>
+          <zeebe:input source="image-to-pdf" target="pdfFunction" />
+          <zeebe:input source="true" target="listSourceFile_optional" />
+          <zeebe:input source="=replace(replace(zipSourceFile, &#34;.zip&#34;, &#34;.pdf&#34;), &#34;.cbr&#34;,&#34;.pdf&#34;)" target="destinationFileName" />
+          <zeebe:input source="={ &#34;type&#34;: &#34;FOLDER&#34;,   &#34;complement&#34;: &#34;c:/temp/unzip/result&#34;}" target="destinationJsonStorageDefinition" />
+          <zeebe:input source="=listDocumentsJpeg" target="listSourceFile" />
+          <zeebe:input source="=replace(zipSourceFile, &#34;zip&#34;, &#34;pdf&#34;)" target="destinationFileName4" />
+          <zeebe:output source="= result.destinationFile" target="pdfFileName" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultVariable" value="result" />
+          <zeebe:header key="errorExpression" value="if is defined(error) then bpmnError(error.code, error.message) else null" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_18fjwbd</bpmn:incoming>
+      <bpmn:outgoing>Flow_1c5x9o0</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gateway_0keppf4" name="Quality control?" default="Flow_1pv1pc9">
+      <bpmn:incoming>Flow_1c5x9o0</bpmn:incoming>
+      <bpmn:outgoing>Flow_1gp9upn</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1pv1pc9</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_1gp9upn" name="Yes" sourceRef="Gateway_0keppf4" targetRef="Activity_create_test_ohio">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=qualityControl</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1pv1pc9" name="No" sourceRef="Gateway_0keppf4" targetRef="Event_17gz6fm" />
+    <bpmn:endEvent id="Event_17gz6fm">
+      <bpmn:incoming>Flow_1pv1pc9</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="Event_0l7yrb4">
+      <bpmn:incoming>Flow_0sn8wm0</bpmn:incoming>
+      <bpmn:incoming>Flow_1i1ne0d</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="Activity_Review" name="review Creation">
+      <bpmn:extensionElements>
+        <zeebe:assignmentDefinition candidateGroups="" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_107wyyc</bpmn:incoming>
+      <bpmn:outgoing>Flow_0sn8wm0</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_0sn8wm0" sourceRef="Activity_Review" targetRef="Event_0l7yrb4" />
+    <bpmn:boundaryEvent id="Event_1m1jeje" name="5 Mn" attachedToRef="Activity_Review">
+      <bpmn:outgoing>Flow_1i1ne0d</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_0rg3kqy">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT5M</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="Flow_1i1ne0d" sourceRef="Event_1m1jeje" targetRef="Event_0l7yrb4" />
+    <bpmn:serviceTask id="Activity_upload_document_v1" name="Zip">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="c-cmis-function" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=&#34;zip&#34;" target="zipFunction" />
+          <zeebe:input source="=listDocumentsJpeg" target="listSourceDocuments" />
+          <zeebe:input source="=&#34;myZip&#34;" target="zipFileName" />
+          <zeebe:input source="={ &#34;storageDefinition&#34;: &#34;TEMPFOLDER&#34; }" target="jsonStorageDefinition" />
+          <zeebe:output source="= result.zipFile" target="zipeFileReference" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="resultVariable" value="result" />
+          <zeebe:header key="errorExpression" value="if is defined(error) then bpmnError(error.code, error.message) else null" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1mbax0b</bpmn:incoming>
+      <bpmn:incoming>Flow_1kzm8t0</bpmn:incoming>
+      <bpmn:outgoing>Flow_107wyyc</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_107wyyc" sourceRef="Activity_upload_document_v1" targetRef="Activity_Review" />
+    <bpmn:sequenceFlow id="Flow_1mbax0b" sourceRef="Event_0kj4kb5" targetRef="Activity_upload_document_v1" />
+    <bpmn:sequenceFlow id="Flow_1kzm8t0" sourceRef="Activity_create_test_ohio" targetRef="Activity_upload_document_v1" />
+  </bpmn:process>
+  <bpmn:error id="Error_1srsdh2" name="Invalid Parent" errorCode="INVALID_PARENT" />
+  <bpmn:error id="Error_1xo585x" name="No Connection CMIS" errorCode="NO_CONNECTION_CMIS" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1gdovn7">
+      <bpmndi:BPMNShape id="Participant_1ofzr54_di" bpmnElement="Participant_1ofzr54" isHorizontal="true">
+        <dc:Bounds x="159" y="166" width="2511" height="720" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_16buafi_di" bpmnElement="Lane_16buafi" isHorizontal="true">
+        <dc:Bounds x="189" y="166" width="2481" height="720" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="209" y="265" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1gnaxte_di" bpmnElement="Activity_create_test_california">
+        <dc:Bounds x="300" y="243" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0n69qb3_di" bpmnElement="Activity_create_test_ohio">
+        <dc:Bounds x="700" y="243" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1an6j1l_di" bpmnElement="Activity_upload_document_v1">
+        <dc:Bounds x="910" y="243" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0l7yrb4_di" bpmnElement="Event_0l7yrb4">
+        <dc:Bounds x="1512" y="352" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_14paj7g_di" bpmnElement="Activity_Review">
+        <dc:Bounds x="1080" y="243" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1y8vpq5_di" bpmnElement="EventSubProcess" isExpanded="true">
+        <dc:Bounds x="1390" y="500" width="390" height="310" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0m6a3zx_di" bpmnElement="Event_044hfb5">
+        <dc:Bounds x="1430" y="582" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1414" y="625" width="70" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1p2jsgx_di" bpmnElement="Event_1p2jsgx">
+        <dc:Bounds x="1682" y="582" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1uvwxmc_di" bpmnElement="Activity_ErrorInCmis">
+        <dc:Bounds x="1520" y="560" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_017io6d_di" bpmnElement="Event_017io6d">
+        <dc:Bounds x="1652" y="642" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1fqrlep_di" bpmnElement="Event_105ru9d">
+        <dc:Bounds x="1552" y="622" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1577" y="665" width="25" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0imssjx_di" bpmnElement="Flow_0imssjx">
+        <di:waypoint x="1466" y="600" />
+        <di:waypoint x="1520" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0elcqgx_di" bpmnElement="Flow_0elcqgx">
+        <di:waypoint x="1620" y="600" />
+        <di:waypoint x="1682" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_14x4h70_di" bpmnElement="Flow_14x4h70">
+        <di:waypoint x="1570" y="658" />
+        <di:waypoint x="1570" y="678" />
+        <di:waypoint x="1611" y="678" />
+        <di:waypoint x="1611" y="660" />
+        <di:waypoint x="1652" y="660" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Activity_1prifr7_di" bpmnElement="Activity_0ro7tvk" isExpanded="true">
+        <dc:Bounds x="1870" y="500" width="350" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1axuf8i_di" bpmnElement="Event_1lfb4in">
+        <dc:Bounds x="1910" y="582" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1920" y="625" width="16" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_15sp3vq_di" bpmnElement="Event_15sp3vq">
+        <dc:Bounds x="1992" y="582" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1hi9b5y_di" bpmnElement="Flow_1hi9b5y">
+        <di:waypoint x="1946" y="600" />
+        <di:waypoint x="1992" y="600" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Activity_01x6cs5_di" bpmnElement="Activity_1ji6b7a">
+        <dc:Bounds x="490" y="243" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0keppf4_di" bpmnElement="Gateway_0keppf4" isMarkerVisible="true">
+        <dc:Bounds x="615" y="258" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="602" y="228" width="77" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_17gz6fm_di" bpmnElement="Event_17gz6fm">
+        <dc:Bounds x="622" y="392" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_17hckzy_di" bpmnElement="Event_1m1jeje">
+        <dc:Bounds x="1102" y="305" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1137" y="348" width="25" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0ctjnkv_di" bpmnElement="Event_0kj4kb5">
+        <dc:Bounds x="782" y="305" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1mevemb_di" bpmnElement="Flow_1mevemb">
+        <di:waypoint x="245" y="283" />
+        <di:waypoint x="300" y="283" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18fjwbd_di" bpmnElement="Flow_18fjwbd">
+        <di:waypoint x="400" y="283" />
+        <di:waypoint x="490" y="283" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1kzm8t0_di" bpmnElement="Flow_1kzm8t0">
+        <di:waypoint x="800" y="283" />
+        <di:waypoint x="910" y="283" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1i1ne0d_di" bpmnElement="Flow_1i1ne0d">
+        <di:waypoint x="1120" y="341" />
+        <di:waypoint x="1120" y="370" />
+        <di:waypoint x="1512" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0sn8wm0_di" bpmnElement="Flow_0sn8wm0">
+        <di:waypoint x="1180" y="283" />
+        <di:waypoint x="1530" y="283" />
+        <di:waypoint x="1530" y="352" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_107wyyc_di" bpmnElement="Flow_107wyyc">
+        <di:waypoint x="1010" y="283" />
+        <di:waypoint x="1080" y="283" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1mbax0b_di" bpmnElement="Flow_1mbax0b">
+        <di:waypoint x="800" y="341" />
+        <di:waypoint x="800" y="370" />
+        <di:waypoint x="870" y="370" />
+        <di:waypoint x="870" y="310" />
+        <di:waypoint x="910" y="310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1c5x9o0_di" bpmnElement="Flow_1c5x9o0">
+        <di:waypoint x="590" y="283" />
+        <di:waypoint x="615" y="283" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1gp9upn_di" bpmnElement="Flow_1gp9upn">
+        <di:waypoint x="665" y="283" />
+        <di:waypoint x="700" y="283" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="674" y="265" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1pv1pc9_di" bpmnElement="Flow_1pv1pc9">
+        <di:waypoint x="640" y="308" />
+        <di:waypoint x="640" y="392" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="648" y="347" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Participant_1r8ve3n_di" bpmnElement="Participant_18wgsd1" isHorizontal="true">
+        <dc:Bounds x="190" y="70" width="330" height="60" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_1its6da_di" bpmnElement="Participant_1a2gw46" isHorizontal="true">
+        <dc:Bounds x="159" y="910" width="581" height="60" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Participant_1uh6kjy_di" bpmnElement="Participant_0pb1b74" isHorizontal="true">
+        <dc:Bounds x="590" y="70" width="600" height="60" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1ehj5z1_di" bpmnElement="Flow_1ehj5z1">
+        <di:waypoint x="350" y="130" />
+        <di:waypoint x="350" y="243" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0s2s2hr_di" bpmnElement="Flow_0s2s2hr">
+        <di:waypoint x="350" y="323" />
+        <di:waypoint x="350" y="910" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0mw9pt4_di" bpmnElement="Flow_0mw9pt4">
+        <di:waypoint x="700" y="910" />
+        <di:waypoint x="700" y="617" />
+        <di:waypoint x="940" y="617" />
+        <di:waypoint x="940" y="323" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0u9g6qs_di" bpmnElement="Flow_0u9g6qs">
+        <di:waypoint x="960" y="243" />
+        <di:waypoint x="960" y="130" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_19j3qz9_di" bpmnElement="Flow_19j3qz9">
+        <di:waypoint x="510" y="910" />
+        <di:waypoint x="510" y="617" />
+        <di:waypoint x="750" y="617" />
+        <di:waypoint x="750" y="323" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
