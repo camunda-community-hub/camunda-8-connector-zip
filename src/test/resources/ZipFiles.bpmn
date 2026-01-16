@@ -16,7 +16,7 @@
         <zeebe:taskDefinition type="=&#34;c-zip-function&#34;" />
         <zeebe:ioMapping>
           <zeebe:input source="=&#34;zip&#34;" target="zipFunction" />
-          <zeebe:input source="=listDocuments" target="listSourceFile" />
+          <zeebe:input source="=[&#10;  {&#10;  &#34;storageDefinition&#34;: &#34;URL&#34;,&#10;  &#34;content&#34;: &#34;https://github.com/camunda-community-hub/connector-8-zip/raw/main/src/test/resources/files/Montagne.jpg&#34;,&#10;  &#34;name&#34;: &#34;Montagne.jpg&#34;,&#10;  &#34;mimeType&#34;: &#34;image/jpeg&#34;&#10;},&#10;  {&#10;  &#34;storageDefinition&#34;: &#34;URL&#34;,&#10;  &#34;content&#34;: &#34;https://github.com/camunda-community-hub/connector-8-zip/raw/main/src/test/resources/files/Monument-Valley.jpg&#34;,&#10;  &#34;name&#34;: &#34;Monument Valley.jpg&#34;,&#10;  &#34;mimeType&#34;: &#34;image/jpeg&#34;&#10;},&#10;  {&#10;  &#34;storageDefinition&#34;: &#34;URL&#34;,&#10;  &#34;content&#34;: &#34;https://github.com/camunda-community-hub/connector-8-zip/raw/main/src/test/resources/files/Alpes-Huez.jpg&#34;,&#10;  &#34;name&#34;: &#34;Alpes Huez.jpg&#34;,&#10;  &#34;mimeType&#34;: &#34;image/jpeg&#34;&#10;}&#10; &#10;]" target="listSourceFile" />
           <zeebe:input source="=&#34;myZip&#34;" target="zipFileName" />
           <zeebe:input source="={ &#34;type&#34;: &#34;FOLDER&#34;,   &#34;complement&#34;: &#34;c:/temp/unzip/result&#34;}" target="jsonStorageDefinition" />
           <zeebe:output source="= result.zipFile" target="zipeFileReference" />
