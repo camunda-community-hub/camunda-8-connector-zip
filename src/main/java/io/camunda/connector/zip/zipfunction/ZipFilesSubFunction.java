@@ -26,6 +26,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -55,35 +57,49 @@ public class ZipFilesSubFunction implements ZipSubFunction {
 
         // read ListSourceFile
         try {
+            int count=0;
             for (Object file : zipInput.getListSourceFile()) {
+                count++;
                 FileVariableReference fileVariableReference;
                 FileVariable fileVariable=null;
-                logExecution.append("Zip files[");
+                logExecution.append("Zip ");
                 try {
                     fileVariableReference = FileVariableReference.fromObject(file);
                     fileVariable = fileRepoFactory.loadFileVariable(fileVariableReference, context);
                     InputStream inputStreamFile = fileVariable.getValueStream();
 
                     // ZIP the file
-                    ZipArchiveEntry zipEntry = new ZipArchiveEntry(fileVariableReference.originalFileName);
+                    String fileName=fileVariableReference.originalFileName;
+
+                    if (fileName== null) {
+                        String source=fileVariableReference.getContent().toString();
+                        // maybe come from an URL? No file name in that situation
+                        fileName = URLDecoder.decode(source.substring(source.lastIndexOf('/') + 1), StandardCharsets.UTF_8);
+                        if (fileName == null || fileName.length()>50)
+                            fileName = "File "+count;
+                    }
+                    ZipArchiveEntry zipEntry = new ZipArchiveEntry(fileName);
                     zipOut.putArchiveEntry(zipEntry);
                     inputStreamFile.transferTo(zipOut);
 
-                    logExecution.append(String.format("%s,",fileVariableReference.originalFileName));
-
+                    logExecution.append(String.format("[%s],",fileName));
+                    logger.debug("{}/{} file [{}] ", count,zipInput.getListSourceFile().size(),  fileName);
+                    zipOut.closeArchiveEntry();
                 } catch(Exception e) {
                     logger.error("Upload error on file {}", fileVariable!=null? fileVariable.getName(): "", e);
-                    throw new ConnectorException(ZipError.READ_FILE, "Can't Read the file [" + zipInput.getSourceFile()
-                            + " :" + e.getMessage());
+                    logExecution.append(String.format("Error on [{}] : {}", fileVariable!=null? fileVariable.getName(): "", e.getMessage()));
+                    if (zipInput.getStopAtFirstError()) {
+                        throw new ConnectorException(ZipError.READ_FILE, "Can't Read the file [" + zipInput.getSourceFile()
+                                + " :" + e.getMessage());
+                    }
 
                 }
-                zipOut.closeArchiveEntry();
             }
 
             zipOut.finish();
             InputStream zipBufferInputStream = new ByteArrayInputStream(zipBufferOutputStream.toByteArray());
 
-            ZipToolbox.write(zipInput.getZipFileName(), "application/zip", zipBufferInputStream, zipInput.getStorageDefinitionObject(), fileRepoFactory, context);
+            zipOutput.zipFile = ZipToolbox.write(zipInput.getZipFileName(), "application/zip", zipBufferInputStream, zipInput.getStorageDefinitionObject(), fileRepoFactory, context);
             logExecution.append(String.format("], Write [%s]",zipInput.getZipFileName()));
 
         } catch(ConnectorException ce) {

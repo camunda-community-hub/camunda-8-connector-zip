@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
         ZipInput.SORT_ZIP_ENTRIES,
         ZipInput.ENCODING,
         ZipInput.ZIP_FILENAME,
+        ZipInput.STOP_AT_FIRST_ERROR,
         ZipInput.COMPRESS_FORMAT
 
 }, type = "c-zip-function")

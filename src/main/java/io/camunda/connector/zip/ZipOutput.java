@@ -12,7 +12,7 @@ import java.util.Map;
 public class ZipOutput implements CherryOutput {
     public static final String LIST_DOCUMENTS = "listDocuments";
     public List<FileVariableReference> listDocumentsId = new ArrayList<>();
-
+    public FileVariableReference zipFile = null;
 
 
     @JsonIgnore
@@ -20,7 +20,6 @@ public class ZipOutput implements CherryOutput {
     public List<Map<String, Object>> getOutputParameters() {
         return ParameterToolbox.getOutputParameters();
     }
-
 
 
 }

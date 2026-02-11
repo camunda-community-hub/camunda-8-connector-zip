@@ -29,6 +29,7 @@ public class ZipInput implements CherryInput {
     public static final String ZIP_FUNCTION = "zipFunction";
     public static final String SOURCE_FILE = "sourceFile";
     public static final String LIST_SOURCE_FILE = "listSourceFile";
+    public static final String STOP_AT_FIRST_ERROR = "stopAtFirstError";
 
     public static final String JSON_STORAGE_DEFINITION = "jsonStorageDefinition";
     public static final String STORAGE_DEFINITION = "storageDefinition";
@@ -60,6 +61,7 @@ public class ZipInput implements CherryInput {
     public Boolean keepFolderStructure;
     public String encoding;
     public String zipFileName;
+public Boolean stopAtFirstError=Boolean.TRUE;
 
     public String sortZipEntries;
     public String compressFormat;
@@ -118,6 +120,9 @@ public class ZipInput implements CherryInput {
         ZIP, RAR
     }
 
+    public boolean getStopAtFirstError() {
+        return stopAtFirstError;
+    }
 
     public enum SORTENTRY {NONE, NUMBER, NUMBERASCII, ASCII}
 
@@ -131,9 +136,10 @@ public class ZipInput implements CherryInput {
     }
 
     public CompressFormat getCompressFormat() {
+        if (compressFormat==null)
+            return CompressFormat.ZIP;
         try {
             return CompressFormat.valueOf(compressFormat);
-
         } catch (
                 Exception e) {
             return null;
