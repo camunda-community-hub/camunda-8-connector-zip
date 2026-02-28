@@ -50,8 +50,7 @@ public class UnzipSubFunction implements ZipSubFunction {
     }
 
     @Override
-    public ZipOutput executeSubFunction(ZipInput zipInput,
-                                        OutboundConnectorContext context, StringBuilder logExecution) throws ConnectorException {
+    public ZipOutput executeSubFunction(ZipInput zipInput, OutboundConnectorContext context, StringBuilder logExecution) throws ConnectorException {
         ZipOutput zipOutput = new ZipOutput();
         FileRepoFactory fileRepoFactory = FileRepoFactory.getInstance();
         FileVariable fileVariable = null;
@@ -64,8 +63,7 @@ public class UnzipSubFunction implements ZipSubFunction {
             compressFormat = detectFormat(fileVariable.getValueStream());
         } catch (Exception e) {
             logger.error("Upload error on file {}", zipInput.getSourceFile(), e);
-            throw new ConnectorException(ZipError.READ_FILE, "Can't Read the file [" + zipInput.getSourceFile()
-                    + " :" + e.getMessage());
+            throw new ConnectorException(ZipError.READ_FILE, "Can't Read the file [" + zipInput.getSourceFile() + " :" + e.getMessage());
         }
         logger.debug("Unzipping file [{}] compressFormat[{}]", fileVariable.getName(), compressFormat.toString());
         logExecution.append(String.format("Unzipping file [%s] compressFormat[%s];", fileVariable.getName(), compressFormat));
@@ -74,15 +72,12 @@ public class UnzipSubFunction implements ZipSubFunction {
             if (compressFormat == ZipInput.CompressFormat.ZIP) {
                 zipOutput.listDocumentsId = unzipOperation(fileVariableReference, fileVariable.getName(), zipInput, fileRepoFactory, context, logExecution);
             } else if (compressFormat == ZipInput.CompressFormat.RAR) {
-                fileVariable = fileRepoFactory.loadFileVariable(fileVariableReference, context);
-                zipOutput.listDocumentsId = unRarOoperation(fileVariable.getValueStream(), fileVariable.getName(), zipInput, fileRepoFactory, context, logExecution);
+                zipOutput.listDocumentsId = unRarOoperation(fileVariableReference, fileVariable.getName(), zipInput, fileRepoFactory, context, logExecution);
             }
 
             //----- Reorder the output
             zipOutput.listDocumentsId = reorder(zipInput.getSortZipEntry(), zipOutput.listDocumentsId);
-            String logDocumentsId = zipOutput.listDocumentsId.stream()
-                    .map(f -> f.originalFileName)
-                    .collect(Collectors.joining(", "));
+            String logDocumentsId = zipOutput.listDocumentsId.stream().map(f -> f.originalFileName).collect(Collectors.joining(", "));
 
             logExecution.append(String.format("[%s] output documents", logDocumentsId));
             return zipOutput;
@@ -98,38 +93,54 @@ public class UnzipSubFunction implements ZipSubFunction {
 
     @Override
     public List<RunnerParameter> getInputsParameter() {
-        return List.of(
-                new RunnerParameter(ZipInput.SOURCE_FILE, "Source file to unzip", String.class,
-                        RunnerParameter.Level.REQUIRED,
-                        "Source file to unzip"));
+        return List.of(new RunnerParameter(ZipInput.SOURCE_FILE, "Source file to unzip", String.class, RunnerParameter.Level.REQUIRED,
+                        "Variable referenced the Zip file")
+                        .setGroup(ZipInput.GROUP_INPUT_FILE),
+
+                new RunnerParameter(ZipInput.SORT_ZIP_ENTRIES, // name
+                        "Sort the list of files in the zip", // label
+                        String.class, // class
+                        RunnerParameter.Level.REQUIRED, // level
+                        "Sort the list of files in the list.")
+                        .addChoice(ZipInput.SORT_ZIP_ENTRIES_V_ASCII, "Ascii")
+                        .addChoice(ZipInput.SORT_ZIP_ENTRIES_V_NUMBER, "Number")
+                        .addChoice(ZipInput.SORT_ZIP_ENTRIES_V_NONE, "None")
+                        .setGroup(ZipInput.GROUP_PARAMETERS),
+
+                new RunnerParameter(ZipInput.FILTER_FILE, "Filter file", String.class, RunnerParameter.Level.OPTIONAL, "Filter to unzip only some specific file, like *.jpg to get only image file")
+                        .setVisibleInTemplate()
+                        .setGroup(ZipInput.GROUP_PARAMETERS),
+
+                new RunnerParameter(ZipInput.FILTER_PATH, "Filter Path", String.class, RunnerParameter.Level.OPTIONAL, "Filter to get only files in a folder, when the zip contains folder")
+                        .setVisibleInTemplate()
+                        .setGroup(ZipInput.GROUP_PARAMETERS),
+
+                ZipInput.zipParameterDestinationJsonStorageDefinition);
+
+
     }
 
     @Override
     public List<RunnerParameter> getOutputsParameter() {
-        return List.of(
-                RunnerParameter.getInstance(ZipOutput.LIST_DOCUMENTS, "List od documents unzipped", String.class,
-                        RunnerParameter.Level.OPTIONAL,
-                        "Folder ID created. In case of a recursive creation, ID of the last folder (deeper)"));
+        return List.of(RunnerParameter.getInstance(ZipOutput.LIST_DOCUMENTS_ID, "List of documents unzipped", String.class,
+                RunnerParameter.Level.REQUIRED, "List of file's reference"));
     }
 
     @Override
     public Map<String, String> getBpmnErrors() {
-        return Map.of(ZipError.FOLDER_CREATION, ZipError.FOLDER_CREATION_EXPLANATION,
-                ZipError.INVALID_PARENT, ZipError.INVALID_PARENT_EXPLANATION,
-                ZipError.INVALID_COMPRESSION, ZipError.INVALID_COMPRESSION_EXPLANATION,
-                ZipError.READ_FILE, ZipError.READ_FILE_EXPLANATION);
+        return Map.of(ZipError.FOLDER_CREATION, ZipError.FOLDER_CREATION_EXPLANATION, ZipError.INVALID_PARENT, ZipError.INVALID_PARENT_EXPLANATION, ZipError.INVALID_COMPRESSION, ZipError.INVALID_COMPRESSION_EXPLANATION, ZipError.READ_FILE, ZipError.READ_FILE_EXPLANATION);
 
     }
 
     @Override
     public String getSubFunctionName() {
-        return "CreateFolder";
+        return "Unzip";
     }
 
 
     @Override
     public String getSubFunctionDescription() {
-        return "Unzip a document, and create a list of document in the storage.";
+        return "Unzip a document, and create a list of documents.";
     }
 
     @Override
@@ -138,9 +149,7 @@ public class UnzipSubFunction implements ZipSubFunction {
     }
 
     List<String> decomposeName(String name) {
-        return Arrays.stream(name.split("/"))
-                .filter(part -> !part.isEmpty())
-                .collect(Collectors.toList());
+        return Arrays.stream(name.split("/")).filter(part -> !part.isEmpty()).collect(Collectors.toList());
     }
 
 
@@ -171,18 +180,11 @@ public class UnzipSubFunction implements ZipSubFunction {
             }
 
             // RAR 4.x or 5.x signature: 52 61 72 21 1A 07 00/01
-            if (header[0] == 0x52 && header[1] == 0x61 &&
-                    header[2] == 0x72 && header[3] == 0x21 &&
-                    header[4] == 0x1A && header[5] == 0x07) {
+            if (header[0] == 0x52 && header[1] == 0x61 && header[2] == 0x72 && header[3] == 0x21 && header[4] == 0x1A && header[5] == 0x07) {
                 return ZipInput.CompressFormat.RAR;
             }
-            String message = "Invalid header characters "
-                    + String.valueOf(header[0])
-                    + "]["
-                    + String.valueOf(header[1])
-                    + "]";
-            throw new ConnectorException(ZipError.INVALID_COMPRESSION,
-                    message);
+            String message = "Invalid header characters " + String.valueOf(header[0]) + "][" + String.valueOf(header[1]) + "]";
+            throw new ConnectorException(ZipError.INVALID_COMPRESSION, message);
 
         } catch (Exception e) {
             throw new ConnectorException(ZipError.READ_FILE, "Can't Read the file :" + e.getMessage());
@@ -191,11 +193,7 @@ public class UnzipSubFunction implements ZipSubFunction {
     }
 
 
-    private static final List<Charset> ZIP_CHARSETS = List.of(
-            StandardCharsets.UTF_8,
-            Charset.forName("CP437"),
-            Charset.forName("windows-1252")
-    );
+    private static final List<Charset> ZIP_CHARSETS = List.of(StandardCharsets.UTF_8, Charset.forName("CP437"), Charset.forName("windows-1252"));
 
     /**
      * ManageZip
@@ -208,13 +206,8 @@ public class UnzipSubFunction implements ZipSubFunction {
      * @param logExecution          logExecution
      * @return the lisf of file unzip
      */
-    private List<FileVariableReference> unzipOperation(FileVariableReference fileVariableReference,
-                                                       String zipFileName,
-                                                       ZipInput zipInput,
-                                                       FileRepoFactory fileRepoFactory,
-                                                       OutboundConnectorContext context,
-                                                       StringBuilder logExecution) {
-        StorageDefinition storageOutputDefinition = zipInput.getStorageDefinitionObject();
+    private List<FileVariableReference> unzipOperation(FileVariableReference fileVariableReference, String zipFileName, ZipInput zipInput, FileRepoFactory fileRepoFactory, OutboundConnectorContext context, StringBuilder logExecution) {
+        StorageDefinition storageOutputDefinition = zipInput.getDestinationStorageDefinitionObject();
         for (Charset charset : ZIP_CHARSETS) {
             int filesFiltered = 0;
             List<FileVariableReference> listDocumentsId = new ArrayList<>();
@@ -225,18 +218,24 @@ public class UnzipSubFunction implements ZipSubFunction {
                 inputStream = fileVariable.getValueStream();
             } catch (Exception e) {
                 logger.error("Upload error on file {}", zipInput.getSourceFile(), e);
-                throw new ConnectorException(ZipError.READ_FILE, "Can't Read the file [" + zipInput.getSourceFile()
-                        + " :" + e.getMessage());
+                throw new ConnectorException(ZipError.READ_FILE, "Can't Read the file [" + zipInput.getSourceFile() + " :" + e.getMessage());
             }
 
+            try {
+                if (storageOutputDefinition == null)
+                    storageOutputDefinition = fileVariableReference.getStorageDefinitionObject();
+            } catch (Exception e) {
+                logger.error("Can't Read the StorageDefinition from file[{}]",  zipInput.getSourceFile(), e);
+                throw new ConnectorException(ZipError.READ_FILE, "Can't Read the StorageDefinition from file [" +  zipInput.getSourceFile() + "] :" + e.getMessage());
+
+            }
             String entryFileName = null;
             try {
                 ZipArchiveInputStream zis = new ZipArchiveInputStream(inputStream, charset.name(), true);
 
                 ZipArchiveEntry entry;
                 while ((entry = zis.getNextZipEntry()) != null) {
-                    if (entry.isDirectory())
-                        continue;
+                    if (entry.isDirectory()) continue;
 
                     entryFileName = entry.getName();
                     FilterStatus filterStatus = filterByName(zipFileName, zipInput, entry.getName());
@@ -278,21 +277,24 @@ public class UnzipSubFunction implements ZipSubFunction {
     /**
      * ManageRarfile
      *
-     * @param inputStream     inputStream for tghe Rar file
-     * @param zipFileName     original file name
-     * @param zipInput        Input to access any other parameter
-     * @param fileRepoFactory fileRepoFactory
-     * @param context         context
+     * @param fileVariableReference File reference where the Rar is stored
+     * @param zipFileName           original file name
+     * @param zipInput              Input to access any other parameter
+     * @param fileRepoFactory       fileRepoFactory
+     * @param context               context
      * @return list of variables created
      */
-    private List<FileVariableReference> unRarOoperation(InputStream inputStream,
-                                                        String zipFileName,
-                                                        ZipInput zipInput,
-                                                        FileRepoFactory fileRepoFactory,
-                                                        OutboundConnectorContext context,
-                                                        StringBuilder logExecution) {
+    private List<FileVariableReference> unRarOoperation(FileVariableReference fileVariableReference, String zipFileName, ZipInput zipInput, FileRepoFactory fileRepoFactory, OutboundConnectorContext context, StringBuilder logExecution) {
+        // reload the file variable to reset the stream at the begining
+        InputStream inputStream;
+        try {
+            FileVariable fileVariable = fileRepoFactory.loadFileVariable(fileVariableReference, context);
+            inputStream = fileVariable.getValueStream();
+        } catch (Exception e) {
+            throw new ConnectorException(ZipError.READ_FILE, "Can't Read the file :" + e.getMessage());
+        }
         List<FileVariableReference> listDocumentsId = new ArrayList<>();
-        StorageDefinition storageOutputDefinition = zipInput.getStorageDefinitionObject();
+        StorageDefinition storageOutputDefinition = zipInput.getDestinationStorageDefinitionObject();
         int filesFiltered = 0;
         try (Archive archive = new Archive(inputStream)) {
             FileHeader fileHeader;
@@ -324,8 +326,7 @@ public class UnzipSubFunction implements ZipSubFunction {
                     FileVariableReference fileVariableOutputReference = fileRepoFactory.saveFileVariable(fileVariableOutput, context);
                     listDocumentsId.add(fileVariableOutputReference);
                 } catch (Exception e) {
-                    throw new ConnectorException(ZipError.WRITE_FILE,
-                            "Error during write file to the output storage " + e.getMessage());
+                    throw new ConnectorException(ZipError.WRITE_FILE, "Error during write file to the output storage " + e.getMessage());
                 }
             }
 
@@ -345,10 +346,16 @@ public class UnzipSubFunction implements ZipSubFunction {
     /*  Common function                                                     */
     /*                                                                      */
     /* ******************************************************************** */
+
+    /**
+     * reorder
+     *
+     * @param sortEntry       sort criteria
+     * @param listDocumentsId list of documents
+     * @return list variable
+     */
     private List<FileVariableReference> reorder(ZipInput.SORTENTRY sortEntry, List<FileVariableReference> listDocumentsId) {
-        String logOrder = listDocumentsId.stream()
-                .map(f -> f.originalFileName)
-                .collect(Collectors.joining(", "));
+        String logOrder = listDocumentsId.stream().map(f -> f.originalFileName).collect(Collectors.joining(", "));
         logger.debug("Before reorder [{}]", logOrder);
 
         switch (sortEntry) {
@@ -360,8 +367,7 @@ public class UnzipSubFunction implements ZipSubFunction {
                 }));
             }
             case NUMBERASCII -> {
-                listDocumentsId.sort((a, b) ->
-                {
+                listDocumentsId.sort((a, b) -> {
                     int returnValue;
                     String log;
                     Double aDouble = extractNumber(a.originalFileName, null);
@@ -392,15 +398,12 @@ public class UnzipSubFunction implements ZipSubFunction {
             }
 
             case ASCII -> {
-                listDocumentsId.sort((a, b) ->
-                        a.originalFileName.compareToIgnoreCase(b.originalFileName));
+                listDocumentsId.sort((a, b) -> a.originalFileName.compareToIgnoreCase(b.originalFileName));
 
             }
         }
 
-        logOrder = listDocumentsId.stream()
-                .map(f -> f.originalFileName)
-                .collect(Collectors.joining(", "));
+        logOrder = listDocumentsId.stream().map(f -> f.originalFileName).collect(Collectors.joining(", "));
 
         logger.debug("After reorder [{}]", logOrder);
 
@@ -421,8 +424,8 @@ public class UnzipSubFunction implements ZipSubFunction {
 
     /**
      * @param zipFileName file name to verify
-     * @param zipInput to access all filters information
-     * @param name name
+     * @param zipInput    to access all filters information
+     * @param name        name
      * @return the filterStatus
      */
     private FilterStatus filterByName(String zipFileName, ZipInput zipInput, String name) {
@@ -458,7 +461,7 @@ public class UnzipSubFunction implements ZipSubFunction {
     /**
      * Extract number
      *
-     * @param name name to use
+     * @param name         name to use
      * @param defaultValue if no number can be extracted
      * @return the value (which may be the default value)
      */

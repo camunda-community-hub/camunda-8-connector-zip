@@ -1,0 +1,33 @@
+{
+  "components": [
+    {
+      "label": "Document preview",
+      "type": "documentPreview",
+      "layout": {
+        "row": "Row_0jgp6a3",
+        "columns": null
+      },
+      "id": "Field_0cw9233",
+      "dataSource": "=[listFiles[1]]"
+    },
+    {
+      "label": "Document preview",
+      "type": "documentPreview",
+      "layout": {
+        "row": "Row_1gpjq56",
+        "columns": null
+      },
+      "id": "Field_1ny43oo",
+      "dataSource": "=[listFiles[2]]"
+    }
+  ],
+  "type": "default",
+  "id": "ReviewFiles",
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.8.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.44.0"
+  },
+  "schemaVersion": 19
+}

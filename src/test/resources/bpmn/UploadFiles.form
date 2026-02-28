@@ -1,0 +1,52 @@
+{
+  "components": [
+    {
+      "label": "File picker 1",
+      "type": "filepicker",
+      "layout": {
+        "row": "Row_117e1rj",
+        "columns": null
+      },
+      "id": "Field_1bnxw72",
+      "key": "filePicker1"
+    },
+    {
+      "label": "File picker 2",
+      "type": "filepicker",
+      "layout": {
+        "row": "Row_02coxxu",
+        "columns": null
+      },
+      "id": "Field_157hf64",
+      "key": "filePicker2"
+    },
+    {
+      "label": "File picker 3",
+      "type": "filepicker",
+      "layout": {
+        "row": "Row_1ju20ds",
+        "columns": null
+      },
+      "id": "Field_0pzdltp",
+      "key": "filePicker3"
+    },
+    {
+      "text": "Upload files. If you miss a file, no worry, Zip property is \"ignore in case of error\"",
+      "type": "text",
+      "layout": {
+        "row": "Row_0lz4xi5",
+        "columns": null
+      },
+      "id": "Field_0w1jvrs"
+    }
+  ],
+  "type": "default",
+  "id": "UploadFiles",
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.8.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.44.0"
+  },
+  "schemaVersion": 19
+}

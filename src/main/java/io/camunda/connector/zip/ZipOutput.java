@@ -10,8 +10,9 @@ import java.util.List;
 import java.util.Map;
 
 public class ZipOutput implements CherryOutput {
-    public static final String LIST_DOCUMENTS = "listDocuments";
+    public static final String LIST_DOCUMENTS_ID = "listDocumentsId";
     public List<FileVariableReference> listDocumentsId = new ArrayList<>();
+    public static final String ZIP_FILE = "zipFile";
     public FileVariableReference zipFile = null;
 
 

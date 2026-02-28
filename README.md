@@ -21,3 +21,5 @@ The connector uses the Cherry generator to create a rich element template.
 Execute the class [DocumentationGenerator.java](src/test/java/io/camunda/csv/DocumentationGenerator.java) to generate the documentation to describe each function.
 
 The connector uses the Cherry principle to create this documentation.
+
+Banner generated with https://www.asciiart.eu/text-to-ascii-art

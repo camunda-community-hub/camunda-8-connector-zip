@@ -17,8 +17,10 @@ import io.camunda.connector.zip.toolbox.ZipToolbox;
 import io.camunda.filestorage.FileRepoFactory;
 import io.camunda.filestorage.FileVariable;
 import io.camunda.filestorage.FileVariableReference;
+import io.camunda.filestorage.storage.StorageDefinition;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
+import org.apache.commons.io.Charsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,8 +28,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -57,37 +57,39 @@ public class ZipFilesSubFunction implements ZipSubFunction {
 
         // read ListSourceFile
         try {
-            int count=0;
+            int count = 0;
+            StorageDefinition defaultStorageDefinition=null;
             for (Object file : zipInput.getListSourceFile()) {
                 count++;
                 FileVariableReference fileVariableReference;
-                FileVariable fileVariable=null;
+                FileVariable fileVariable = null;
                 logExecution.append("Zip ");
                 try {
                     fileVariableReference = FileVariableReference.fromObject(file);
                     fileVariable = fileRepoFactory.loadFileVariable(fileVariableReference, context);
+
+                    if (defaultStorageDefinition==null)
+                        defaultStorageDefinition=fileVariable.getStorageDefinition();
                     InputStream inputStreamFile = fileVariable.getValueStream();
 
-                    // ZIP the file
-                    String fileName=fileVariableReference.originalFileName;
+                    // get a filename
+                    String fileName = fileVariableReference.getFileName();
+                    if (fileName == null)
+                        fileName = "File " + count;
+                    if (fileName.length()>40)
+                        fileName = fileName.substring(0, 40) +count;
 
-                    if (fileName== null) {
-                        String source=fileVariableReference.getContent().toString();
-                        // maybe come from an URL? No file name in that situation
-                        fileName = URLDecoder.decode(source.substring(source.lastIndexOf('/') + 1), StandardCharsets.UTF_8);
-                        if (fileName == null || fileName.length()>50)
-                            fileName = "File "+count;
-                    }
+                    // ZIP the file
                     ZipArchiveEntry zipEntry = new ZipArchiveEntry(fileName);
                     zipOut.putArchiveEntry(zipEntry);
                     inputStreamFile.transferTo(zipOut);
 
-                    logExecution.append(String.format("[%s],",fileName));
-                    logger.debug("{}/{} file [{}] ", count,zipInput.getListSourceFile().size(),  fileName);
+                    logExecution.append(String.format("[%s],", fileName));
+                    logger.debug("{}/{} file [{}] ", count, zipInput.getListSourceFile().size(), fileName);
                     zipOut.closeArchiveEntry();
-                } catch(Exception e) {
-                    logger.error("Upload error on file {}", fileVariable!=null? fileVariable.getName(): "", e);
-                    logExecution.append(String.format("Error on [{}] : {}", fileVariable!=null? fileVariable.getName(): "", e.getMessage()));
+                } catch (Exception e) {
+                    logger.error("Upload error on file {}", fileVariable != null ? fileVariable.getName() : "", e);
+                    logExecution.append(String.format("Error on [{}] : {}", fileVariable != null ? fileVariable.getName() : "", e.getMessage()));
                     if (zipInput.getStopAtFirstError()) {
                         throw new ConnectorException(ZipError.READ_FILE, "Can't Read the file [" + zipInput.getSourceFile()
                                 + " :" + e.getMessage());
@@ -99,11 +101,18 @@ public class ZipFilesSubFunction implements ZipSubFunction {
             zipOut.finish();
             InputStream zipBufferInputStream = new ByteArrayInputStream(zipBufferOutputStream.toByteArray());
 
-            zipOutput.zipFile = ZipToolbox.write(zipInput.getZipFileName(), "application/zip", zipBufferInputStream, zipInput.getStorageDefinitionObject(), fileRepoFactory, context);
-            logExecution.append(String.format("], Write [%s]",zipInput.getZipFileName()));
+            StorageDefinition storageDestination = zipInput.getDestinationStorageDefinitionObject();
+            if (storageDestination == null) {
+                storageDestination = defaultStorageDefinition;
+            }
+            if (storageDestination == null) {
+                throw new ConnectorException(ZipError.INCORRECT_STORAGEDEFINITION, "Specify a storage definition");
+            }
+            zipOutput.zipFile = ZipToolbox.write(zipInput.getZipFileName(), "application/zip", zipBufferInputStream, zipInput.getDestinationStorageDefinitionObject(), fileRepoFactory, context);
+            logExecution.append(String.format("], Write [%s]", zipInput.getZipFileName()));
 
-        } catch(ConnectorException ce) {
-            throw  ce;
+        } catch (ConnectorException ce) {
+            throw ce;
         } catch (Exception e) {
             logger.error("Upload error on file {}", zipInput.getZipFileName(), e);
             throw new ConnectorException(ZipError.WRITE_FILE, "Can't write the file [" + zipInput.getZipFileName()
@@ -125,28 +134,49 @@ public class ZipFilesSubFunction implements ZipSubFunction {
     @Override
     public List<RunnerParameter> getInputsParameter() {
         return List.of(
-                new RunnerParameter(ZipInput.SOURCE_FILE, "Zip Connection", String.class,
-                        RunnerParameter.Level.REQUIRED, "Zip Connection. JSON like {\"url\":\"http://localhost:8099/Zip/browser\",\"userName\":\"test\",\"password\":\"test\"}"),
-                new RunnerParameter(ZipInput.FILTER_FILE, "Filter File", String.class,
-                        RunnerParameter.Level.OPTIONAL, "Recursive name: folder name can contains '/'") //
-                        .setVisibleInTemplate() //
-                        .setDefaultValue("*"),//
-                new RunnerParameter(ZipInput.KEEP_FOLDER_STRUCTURE, "Keep Folder Structure", Boolean.class, RunnerParameter.Level.REQUIRED,
-                        "Folder name to be created."));
+                new RunnerParameter(ZipInput.LIST_SOURCE_FILE, "List Source files", List.class,
+                        RunnerParameter.Level.REQUIRED, "Variable who contains the list of files to be stored in the Zip file")
+                        .setGroup(ZipInput.GROUP_INPUT_FILE),
+                /* Only ZIP is supported for the moment
+                new RunnerParameter(ZipInput.COMPRESS_FORMAT, "Compress format", String.class,
+                        RunnerParameter.Level.OPTIONAL, "Compression: ATTENTION ONLY ZIP us supported")
+                        .addChoice(ZipInput.CompressFormat.ZIP.name(), ZipInput.CompressFormat.ZIP.name())//
+                        .addChoice(ZipInput.CompressFormat.RAR.name(), ZipInput.CompressFormat.RAR.name())//
+                        .setVisibleInTemplate()
+                        .setDefaultValue(ZipInput.CompressFormat.ZIP.name()),
+                */
+                new RunnerParameter(ZipInput.ENCODING, "Encoding (Chartset", String.class, RunnerParameter.Level.OPTIONAL,
+                        "Encoding")
+                        .setVisibleInTemplate()
+                        .setDefaultValue(Charsets.UTF_8.name())
+                        .setGroup(ZipInput.GROUP_PARAMETERS),
+                new RunnerParameter(ZipInput.STOP_AT_FIRST_ERROR, "Stop at first error", Boolean.class, RunnerParameter.Level.OPTIONAL,
+                        "Stop at the first error, else continue to process all other files, and the files in error is not in the ZIP")
+                        .setVisibleInTemplate()
+                        .setDefaultValue(Boolean.TRUE)
+                        .setGroup(ZipInput.GROUP_PARAMETERS),
+                new RunnerParameter(ZipInput.ZIP_FILENAME, "Zip File Name", String.class, RunnerParameter.Level.REQUIRED,
+                        "File Name of the Zip file produced")
+                        .setGroup(ZipInput.GROUP_PARAMETERS),
+                ZipInput.zipParameterDestinationJsonStorageDefinition
+        );
+
     }
 
     @Override
     public List<RunnerParameter> getOutputsParameter() {
         return List.of(
-                RunnerParameter.getInstance(ZipOutput.LIST_DOCUMENTS, "Folder ID created", String.class,
-                        RunnerParameter.Level.OPTIONAL,
-                        "Folder ID created. In case of a recursive creation, ID of the last folder (deeper)"));
+                RunnerParameter.getInstance(ZipOutput.ZIP_FILE, "Destination variable name", // label
+                        String.class, // class
+                        RunnerParameter.Level.REQUIRED, "Process variable where files's reference is saved"));
     }
 
     @Override
     public Map<String, String> getBpmnErrors() {
-        return Map.of(ZipError.FOLDER_CREATION, ZipError.FOLDER_CREATION_EXPLANATION,
-                ZipError.INVALID_PARENT, ZipError.INVALID_PARENT_EXPLANATION);
+        return Map.of(ZipError.WRITE_FILE, ZipError.WRITE_FILE_EXPLANATION,
+                ZipError.READ_FILE, ZipError.READ_FILE_EXPLANATION,
+                ZipError.RAR_COMPRESSION_NOT_SUPPORTED, ZipError.RAR_COMPRESSION_NOT_SUPPORTED_EXPLANATION,
+                ZipError.INCORRECT_STORAGEDEFINITION, ZipError.INCORRECT_STORAGEDEFINITION_EXPLANATION);
 
     }
 
@@ -158,7 +188,7 @@ public class ZipFilesSubFunction implements ZipSubFunction {
 
     @Override
     public String getSubFunctionDescription() {
-        return "Unzip a document, and create a list of document in the storage.";
+        return "Zip a list of documents to one document.";
     }
 
     @Override

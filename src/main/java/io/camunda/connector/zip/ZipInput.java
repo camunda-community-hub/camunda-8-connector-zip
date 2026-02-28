@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.cherrytemplate.CherryInput;
+import io.camunda.connector.cherrytemplate.RunnerParameter;
 import io.camunda.connector.zip.toolbox.ParameterToolbox;
 import io.camunda.connector.zip.toolbox.ZipError;
 import io.camunda.filestorage.FileVariable;
@@ -22,7 +23,10 @@ import java.util.Map;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ZipInput implements CherryInput {
-    public static final String GROUP_STORAGE_DEFINITION = "Storage definition";
+    public static final String GROUP_INPUT_FILE = "Input file";
+    public static final String GROUP_PARAMETERS = "Parameters";
+
+    public static final String GROUP_STORAGE_DEFINITION = "Destination Storage";
     /**
      * Attention, each Input here must be added in the function, list of InputVariables
      */
@@ -31,10 +35,7 @@ public class ZipInput implements CherryInput {
     public static final String LIST_SOURCE_FILE = "listSourceFile";
     public static final String STOP_AT_FIRST_ERROR = "stopAtFirstError";
 
-    public static final String JSON_STORAGE_DEFINITION = "jsonStorageDefinition";
-    public static final String STORAGE_DEFINITION = "storageDefinition";
-    public static final String STORAGE_DEFINITION_FOLDER_COMPLEMENT = "storageDefinitionComplement";
-    public static final String STORAGE_DEFINITION_CMIS_COMPLEMENT = "storageDefinitionCmis";
+    public static final String DESTINATION_JSON_STORAGE_DEFINITION = "destinationJsonStorageDefinition";
     public static final String FILTER_PATH = "filterPath";
     public static final String FILTER_FILE = "filterFile";
     public static final String KEEP_FOLDER_STRUCTURE = "filterFile";
@@ -48,20 +49,25 @@ public class ZipInput implements CherryInput {
     public static final String COMPRESS_FORMAT = "compressFormat";
 
 
+    public static final RunnerParameter zipParameterDestinationJsonStorageDefinition = new RunnerParameter(
+            ZipInput.DESTINATION_JSON_STORAGE_DEFINITION, // name
+            "JSon Storage Destination", // label
+            Map.class, // class
+            RunnerParameter.Level.OPTIONAL, // level
+            "Storage Definition in Json.").setGroup(GROUP_STORAGE_DEFINITION);
+
     public String zipFunction;
     public Object sourceFile;
     public List<Object> listSourceFile;
 
-    public Object jsonStorageDefinition;
-    public String storageDefinition;
-    public String storageDefinitionComplement;
-    public String storageDefinitionCmis;
+    public Object destinationJsonStorageDefinition;
+
     public String filterPath;
     public String filterFile;
     public Boolean keepFolderStructure;
     public String encoding;
     public String zipFileName;
-public Boolean stopAtFirstError=Boolean.TRUE;
+    public Boolean stopAtFirstError = Boolean.TRUE;
 
     public String sortZipEntries;
     public String compressFormat;
@@ -88,20 +94,8 @@ public Boolean stopAtFirstError=Boolean.TRUE;
         return zipFileName;
     }
 
-    public Object getJsonStorageDefinition() {
-        return jsonStorageDefinition;
-    }
-
-    public String getStorageDefinition() {
-        return storageDefinition;
-    }
-
-    public String getStorageDefinitionComplement() {
-        return storageDefinitionComplement;
-    }
-
-    public String getStorageDefinitionCmis() {
-        return storageDefinitionCmis;
+    public Object getDestinationJsonStorageDefinition() {
+        return destinationJsonStorageDefinition;
     }
 
     public String getZipFunction() {
@@ -136,7 +130,7 @@ public Boolean stopAtFirstError=Boolean.TRUE;
     }
 
     public CompressFormat getCompressFormat() {
-        if (compressFormat==null)
+        if (compressFormat == null)
             return CompressFormat.ZIP;
         try {
             return CompressFormat.valueOf(compressFormat);
@@ -154,7 +148,7 @@ public Boolean stopAtFirstError=Boolean.TRUE;
 
 
     public FileVariable initializeOutputFileVariable(String fileName) throws ConnectorException {
-        StorageDefinition storageOutputDefinition = getStorageDefinitionObject();
+        StorageDefinition storageOutputDefinition = getDestinationStorageDefinitionObject();
 
         FileVariable fileVariable = new FileVariable();
         fileVariable.setStorageDefinition(storageOutputDefinition);
@@ -169,27 +163,14 @@ public Boolean stopAtFirstError=Boolean.TRUE;
      * @throws ConnectorException if the connection
      */
     @JsonIgnore
-    public StorageDefinition getStorageDefinitionObject() throws ConnectorException {
+    public StorageDefinition getDestinationStorageDefinitionObject() throws ConnectorException {
         try {
-
-            StorageDefinition storageDefinitionObj = null;
-            // Attention, it may be an empty string due to the modeler which not like null value
-            if (jsonStorageDefinition != null && !jsonStorageDefinition.toString().trim().isEmpty()) {
-                storageDefinitionObj = StorageDefinition.getFromObject(jsonStorageDefinition);
-                return storageDefinitionObj;
-            }
-
-            storageDefinitionObj = StorageDefinition.getFromStorageDefinition(getStorageDefinition());
-            storageDefinitionObj.complement = getStorageDefinitionComplement();
-            if (storageDefinitionObj.complement != null && storageDefinitionObj.complement.isEmpty())
-                storageDefinitionObj.complement = null;
-
-            storageDefinitionObj.complementInObject = getStorageDefinitionCmis();
+            StorageDefinition storageDefinitionObj = StorageDefinition.getFromObject(destinationJsonStorageDefinition);
             return storageDefinitionObj;
         } catch (Exception e) {
-            logger.error("Can't get the FileStorage - bad Gson value :" + getStorageDefinition());
+            logger.error("Can't get the FileStorage - bad Json value :" + destinationJsonStorageDefinition);
             throw new ConnectorException(ZipError.INCORRECT_STORAGEDEFINITION,
-                    "FileStorage information" + getStorageDefinition());
+                    "FileStorage information: " + destinationJsonStorageDefinition);
         }
     }
 

@@ -39,7 +39,7 @@ public class ParameterToolbox {
 
         // add the "choose the function" parameters
         RunnerParameter chooseFunction = new RunnerParameter(ZipInput.ZIP_FUNCTION,
-                "FileStorage Function", String.class, RunnerParameter.Level.REQUIRED, "Choose the function to execute");
+                "Zip Function", String.class, RunnerParameter.Level.REQUIRED, "Choose the function to execute");
         chooseFunction.setAttribute("priority", -1);
 
         // add the input only at the INPUT parameters

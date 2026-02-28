@@ -14,7 +14,7 @@ public class ElementTemplateGenerator {
         // Call the Cherry runtime
         try {
             RunnerDecorationTemplate runnerDecorationTemplate = new RunnerDecorationTemplate(new ZipFunction());
-            runnerDecorationTemplate.generateElementTemplate("./element-templates/", "ZIP-connector.json");
+            runnerDecorationTemplate.generateElementTemplate("./element-templates/", "zip-connector.json");
         } catch (Exception e) {
             logger.error("Error during generation", e);
         }
